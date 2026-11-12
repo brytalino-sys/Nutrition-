@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор пищевой ценности</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* layout: one column lab sheet, tab bar on top, dense tables with a sticky first column */
+:root{
+  --bg:#f4f5f3; --panel:#ffffff; --ink:#1c2326; --muted:#5d686d; --line:#d9dedc;
+  --accent:#8a2a2b; --accent-ink:#ffffff; --soft:#f3e9e8;
+  --ok:#2f7d4f; --warn:#b26a00; --bad:#b3261e;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15191b; --panel:#1e2427; --ink:#e8ecec; --muted:#9aa6aa; --line:#333c40;
+    --accent:#e08a84; --accent-ink:#1a1010; --soft:#33262a;
+    --ok:#6cc391; --warn:#e3a84a; --bad:#f08a80; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15191b; --panel:#1e2427; --ink:#e8ecec; --muted:#9aa6aa; --line:#333c40;
+  --accent:#e08a84; --accent-ink:#1a1010; --soft:#33262a;
+  --ok:#6cc391; --warn:#e3a84a; --bad:#f08a80; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);font-variant-numeric:tabular-nums}
+header{padding:14px 16px 6px;max-width:1080px;margin:0 auto}
+h1{font:600 24px/1.15 var(--display);margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav div{display:flex;gap:2px;overflow-x:auto;max-width:1080px;margin:0 auto;padding:0 12px}
+nav a{flex:none;padding:10px 10px;color:var(--muted);text-decoration:none;font:500 14px var(--display);border-bottom:3px solid transparent;white-space:nowrap}
+nav a.on{color:var(--accent);border-color:var(--accent)}
+main{max-width:1080px;margin:0 auto;padding:14px 16px 60px;display:flex;flex-direction:column;gap:14px}
+section,details.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+h2{font:600 17px/1.2 var(--display);margin:0 0 10px;text-wrap:balance}
+h3{font:600 14px var(--display);margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+summary{cursor:pointer;font:600 17px/1.2 var(--display)}
+details.card>summary{margin:-2px 0}
+details.card[open]>summary{margin-bottom:10px}
+.muted{color:var(--muted);font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);flex:1 1 150px;min-width:0}
+input,select,button,textarea{font:inherit;color:inherit}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 8px;min-width:0;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:500}
+button.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.x{padding:4px 9px;color:var(--bad)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:600 12px var(--display);color:var(--muted);background:var(--bg);vertical-align:bottom;white-space:normal}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);white-space:normal;min-width:140px;max-width:240px}
+th:first-child{background:var(--bg)}
+tr:last-child td{border-bottom:0}
+tr.sum td{font-weight:600;background:var(--soft)}
+tr.sum td:first-child{background:var(--soft)}
+td.sub{padding-left:22px;color:var(--muted)}
+td input{width:86px;text-align:right;padding:4px 6px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.tile{border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--bg)}
+.tile b{display:block;font:600 20px/1.2 var(--display)}
+.tile span{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;border-radius:10px;padding:1px 8px;font-size:12px;font-weight:600;border:1px solid currentColor}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.gap{color:var(--warn);font-weight:600;cursor:help}
+.bar{height:8px;background:var(--line);border-radius:4px;position:relative;min-width:90px}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--ok)}
+.bar i.lim{background:var(--bad)}
+.bar u{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--ink)}
+#found{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;margin-top:6px;max-height:300px;overflow:auto}
+#found:empty{display:none}
+#found button{border:0;border-bottom:1px solid var(--line);border-radius:0;text-align:left;font-weight:400;display:flex;justify-content:space-between;gap:8px}
+#found small{color:var(--muted);white-space:nowrap}
+.note{border-left:3px solid var(--warn);padding:6px 10px;background:var(--bg);font-size:13px;border-radius:0 6px 6px 0}
+.prose{max-width:70ch}.prose p,.prose li{margin:6px 0}.prose code{background:var(--bg);padding:1px 4px;border-radius:4px;font-size:13px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;display:none;z-index:9;max-width:90vw}
+@media (max-width:480px){th,td{padding:5px 6px}th:first-child,td:first-child{min-width:120px;max-width:150px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Калькулятор пищевой ценности рецептур</h1>
+  <p>Сырьё и готовый продукт: макро- и микронутриенты, углеводы, аминокислоты, жирные кислоты, показатели качества белка и жира.</p>
+</header>
+<nav><div id="tabs"></div></nav>
+<main id="view"></main>
+<div id="toast" role="status"></div>
+<script src="db.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+"use strict";
+/*CORE*/
+const DBX = (typeof window!=='undefined'?window.DB:globalThis.DB);
+const KEYS = DBX.keys, KI = {}; KEYS.forEach((k,i)=>KI[k]=i);
+const META = {}, ORDER = {};
+function def(g, list){ ORDER[g]=ORDER[g]||[]; list.forEach(a=>{ META[a[0]]={k:a[0],n:a[1],u:a[2],d:a[3],g:g,r:a[4]||null,c:a[5]||null}; ORDER[g].push(a[0]); }); }
+def('main',[['water','Вода','г',1],['prot','Белки','г',1,'prot'],['fat','Жиры','г',1,'fat'],['carb','Углеводы усвояемые','г',1,'carb'],['fib','Пищевые волокна','г',1],['ash','Зола','г',2,'ash'],['alc','Спирт этиловый','г',1,'alc']]);
+def('carb',[['sug','Моно- и дисахариды (сахара)','г',2,'carb'],['glu','Глюкоза','г',2,'carb'],['fru','Фруктоза','г',2,'carb'],['gal','Галактоза','г',2,'carb'],['suc','Сахароза','г',2,'carb'],['lac','Лактоза','г',2,'carb'],['mal','Мальтоза','г',2,'carb'],['starch','Крахмал (аналитические данные)','г',2,'carb']]);
+def('min',[['na','Натрий','мг',0,'na'],['k','Калий','мг',0,'k'],['ca','Кальций','мг',0,'ca'],['mg','Магний','мг',0,'mg'],['p','Фосфор','мг',0,'p'],['fe','Железо','мг',2,'fe'],['zn','Цинк','мг',2,'zn'],['cu','Медь','мг',3,'cu'],['mn','Марганец','мг',3,'mino'],['se','Селен','мкг',1,'mino'],['f','Фтор','мкг',1,'mino']]);
+def('vit',[['va','Витамин A (ретиноловый экв.)','мкг',0,'va'],['ret','Ретинол','мкг',0,'va'],['bcar','β-каротин','мкг',0,'car'],['acar','α-каротин','мкг',0,'car'],['lyc','Ликопин','мкг',0,'car'],['lut','Лютеин + зеаксантин','мкг',0,'car'],['vd','Витамин D','мкг',2,'vd'],['ve','Витамин E (α-токоферол)','мг',2,'ve'],['vk','Витамин K (филлохинон)','мкг',1,'vk'],['vc','Витамин C','мг',1,'vc'],['b1','Витамин B1 (тиамин)','мг',3,'b1'],['b2','Витамин B2 (рибофлавин)','мг',3,'b2'],['b3','Ниацин (PP)','мг',2,'b3'],['ne','Ниациновый эквивалент','мг',2],['b5','Пантотеновая кислота (B5)','мг',2,'b5'],['b6','Витамин B6','мг',3,'b6'],['fol','Фолаты','мкг',0,'fol'],['b12','Витамин B12','мкг',2,'b12'],['choline','Холин','мг',1,'choline']]);
+def('aa',[['val','Валин','г',3,'prot'],['ile','Изолейцин','г',3,'prot'],['leu','Лейцин','г',3,'prot'],['lys','Лизин','г',3,'prot'],['met','Метионин','г',3,'prot'],['cys','Цистин','г',3,'prot'],['thr','Треонин','г',3,'prot'],['trp','Триптофан','г',3,'prot'],['phe','Фенилаланин','г',3,'prot'],['tyr','Тирозин','г',3,'prot'],['his','Гистидин','г',3,'prot']]);
+def('naa',[['arg','Аргинин','г',3,'prot'],['ala','Аланин','г',3,'prot'],['asp','Аспарагиновая кислота','г',3,'prot'],['glut','Глутаминовая кислота','г',3,'prot'],['gly','Глицин','г',3,'prot'],['pro','Пролин','г',3,'prot'],['ser','Серин','г',3,'prot'],['hyp','Оксипролин','г',3,'prot']]);
+def('lip',[['sfa','Насыщенные жирные кислоты (НЖК)','г',2,'fat'],['mufa','Мононенасыщенные (МНЖК)','г',2,'fat'],['pufa','Полиненасыщенные (ПНЖК)','г',2,'fat'],['n6','ω-6 ПНЖК','г',3,'fat'],['n3','ω-3 ПНЖК','г',3,'fat'],['trans','Трансизомеры','г',3,'fat'],['chl','Холестерин','мг',0,'fat'],['phyto','Фитостерины','мг',0,'fat']]);
+def('fa',[['c4','C4:0 масляная','г',3,'fat','s'],['c6','C6:0 капроновая','г',3,'fat','s'],['c8','C8:0 каприловая','г',3,'fat','s'],['c10','C10:0 каприновая','г',3,'fat','s'],['c12','C12:0 лауриновая','г',3,'fat','s'],['c13','C13:0 тридекановая','г',3,'fat','s'],['c14','C14:0 миристиновая','г',3,'fat','s'],['c15','C15:0 пентадекановая','г',3,'fat','s'],['c16','C16:0 пальмитиновая','г',3,'fat','s'],['c17','C17:0 маргариновая','г',3,'fat','s'],['c18','C18:0 стеариновая','г',3,'fat','s'],['c20','C20:0 арахиновая','г',3,'fat','s'],['c22','C22:0 бегеновая','г',3,'fat','s'],['c24','C24:0 лигноцериновая','г',3,'fat','s'],
+['c14_1','C14:1 миристолеиновая','г',3,'fat','m'],['c15_1','C15:1 пентадеценовая','г',3,'fat','m'],['c16_1','C16:1 пальмитолеиновая','г',3,'fat','m'],['c17_1','C17:1 гептадеценовая','г',3,'fat','m'],['c18_1','C18:1 олеиновая (сумма изомеров)','г',3,'fat','m'],['c20_1','C20:1 гондоиновая','г',3,'fat','m'],['c22_1','C22:1 эруковая','г',3,'fat','m'],['c24_1','C24:1 нервоновая','г',3,'fat','m'],
+['c18_2','C18:2 линолевая','г',3,'fat','p'],['c18_3','C18:3 линоленовая','г',3,'fat','p'],['c18_4','C18:4 стеаридоновая','г',3,'fat','p'],['c20_2','C20:2 эйкозадиеновая','г',3,'fat','p'],['c20_3','C20:3 эйкозатриеновая','г',3,'fat','p'],['c20_4','C20:4 арахидоновая','г',3,'fat','p'],['c20_5','C20:5 эйкозапентаеновая (ЭПК)','г',3,'fat','p'],['c22_5','C22:5 докозапентаеновая (ДПК)','г',3,'fat','p'],['c22_6','C22:6 докозагексаеновая (ДГК)','г',3,'fat','p'],['cla','КЛК (конъюгированная линолевая)','г',3,'fat','p']]);
+const ALLK = Object.keys(META).filter(k=>k!=='ne');
+
+/* значение нутриента в продукте, г (мг, мкг) на 100 г; null = в справочнике нет данных */
+function fv(f,k){
+  const v=f.v, P=v[KI.prot]||0, F=v[KI.fat]||0;
+  if(k==='carb'){ const c=v[KI.carbt]; return c==null?null:Math.max(0,c-(v[KI.fib]||0)); }
+  const x=v[KI[k]]; if(x!=null) return x;
+  const g=META[k].g;
+  if(g==='aa'||g==='naa') return P<=0.5?0:null;
+  if(g==='fa') return (v[KI.sfa]!=null||F<=0.5)?0:null;
+  if(g==='lip') return F<=0.5?0:null;
+  if(g==='carb'){ const c=fv(f,'carb'); return (c!=null&&c<=0.5)?0:null; }
+  if(k==='alc') return 0;
+  return null;
+}
+
+const RP=[['prot','Белки и аминокислоты'],['fat','Жиры, жирные кислоты, холестерин'],['carb','Усвояемые углеводы'],['alc','Спирт'],
+['na','Натрий'],['k','Калий'],['ca','Кальций'],['mg','Магний'],['p','Фосфор'],['fe','Железо'],['zn','Цинк'],['cu','Медь'],['mino','Марганец, селен, фтор'],
+['va','Витамин A, ретинол'],['car','Каротиноиды'],['vd','Витамин D'],['ve','Витамин E'],['vk','Витамин K'],['vc','Витамин C'],['b1','Витамин B1'],['b2','Витамин B2'],['b3','Ниацин'],['b5','Пантотеновая кислота'],['b6','Витамин B6'],['fol','Фолаты'],['b12','Витамин B12'],['choline','Холин']];
+const MACRO={
+  none:{n:'Без потерь (изменение только за счёт выхода)',v:[100,100,100]},
+  sk:{n:'Обобщённые потери: белки 6%, жиры 12%, углеводы 9%',v:[94,88,91]},
+  ska:{n:'Животное сырьё: белки 8%, жиры 25%',v:[92,75,100]},
+  skp:{n:'Растительное сырьё: белки 5%, жиры 6%, углеводы 9%',v:[95,94,91]}
+};
+/* порядок USDA: Ca Fe Mg P K Na Zn Cu C B1 B2 B3 B6 fol fol fol холин B12 A A спирт каротин */
+function U(id,n,y,m,s){ const a=s.split(' ').map(Number);
+  return {id,n,y,m,src:'USDA Retention Factors, вып. 6',as:['mino','vd','ve','vk','b5'],
+    v:{ca:a[0],fe:a[1],mg:a[2],p:a[3],k:a[4],na:a[5],zn:a[6],cu:a[7],mino:a[7],vc:a[8],b1:a[9],b2:a[10],b3:a[11],b6:a[12],fol:a[15],choline:a[16],b12:a[17],va:a[19],alc:a[20],car:a[21],vd:100,ve:100,vk:100,b5:100}}; }
+function S(id,n,m,ca,mg,p,fe){ return {id,n,y:null,m,src:'Скурихин, обобщённые потери',as:['k','na','zn','cu','mino','b6','fol','b12','choline','b5','ve','vd','vk','alc'].concat(id==='sk'?[]:['fe']),
+  v:{ca,mg,p,fe,k:87,na:87,zn:87,cu:87,mino:87,va:60,car:80,b1:72,b2:80,b3:80,vc:40,b6:80,fol:80,b12:80,choline:80,b5:80,ve:80,vd:80,vk:80,alc:100}}; }
+const MICRO=[
+ {id:'none',n:'Без тепловой обработки',y:100,m:'none',src:'',as:[],v:Object.fromEntries(RP.slice(3).map(r=>[r[0],100]))},
+ S('sk','Обобщённые потери, смешанное сырьё (Скурихин)','sk',88,87,87,87),
+ S('ska','Обобщённые потери, животное сырьё (Скурихин)','ska',85,80,80,80),
+ S('skp','Обобщённые потери, растительное сырьё (Скурихин)','skp',90,90,90,90),
+ U('m1','Говядина, баранина: запекание, жарка крупным куском',65,'none','90 100 85 85 80 85 100 100 80 55 95 75 50 95 95 95 90 70 75 75 100 75'),
+ U('m2','Говядина, баранина: жарка порционно, гриль, котлеты',80,'none','100 95 85 90 85 85 100 100 80 70 90 80 60 85 85 85 90 80 75 75 100 75'),
+ U('m3','Говядина, баранина: варка, тушение, бульон не используется',62,'ska','80 100 65 65 55 55 100 95 80 45 85 55 35 65 65 65 90 60 75 75 100 75'),
+ U('m4','Говядина, баранина: тушение, сок и бульон используются',90,'none','100 100 100 100 100 100 100 100 85 60 100 90 50 70 70 70 90 75 80 80 100 80'),
+ U('p1','Свинина: запекание',68,'none','95 100 75 85 80 80 100 100 80 60 95 85 85 95 95 95 100 80 75 75 100 75'),
+ U('p2','Свинина: жарка порционно, гриль',65,'none','75 80 95 90 85 90 100 95 80 70 100 80 65 85 85 85 100 90 75 75 100 75'),
+ U('p3','Свинина: варка, бульон не используется',60,'ska','80 100 65 65 75 70 100 100 75 40 75 80 50 65 65 65 100 60 75 75 100 75'),
+ U('p4','Свинина: тушение, сок и бульон используются',90,'none','100 100 100 100 100 100 100 100 80 55 90 95 65 70 70 70 100 75 80 80 100 80'),
+ U('c1','Птица: запекание, жарка',69,'none','95 90 75 80 80 80 100 95 80 70 90 80 80 60 60 60 70 65 75 75 100 75'),
+ U('c2','Птица: варка, бульон не используется',73,'ska','80 90 65 70 60 70 100 90 80 55 95 60 50 60 60 60 70 50 75 75 100 75'),
+ U('c3','Птица: тушение, сок и бульон используются',90,'none','100 100 100 100 100 100 100 100 85 75 100 95 65 70 70 70 70 65 80 80 100 80'),
+ U('f1','Рыба: запекание, гриль',80,'none','100 100 100 100 100 100 100 100 80 90 95 95 90 90 90 90 100 90 90 90 100 90'),
+ U('f2','Рыба: жарка',82,'none','100 100 100 100 100 100 100 100 80 85 95 100 90 90 90 90 100 90 85 85 100 85'),
+ U('f3','Рыба: варка, припускание',80,'ska','100 100 90 90 85 90 100 100 75 80 90 85 80 80 80 80 100 85 80 80 100 80'),
+ U('e1','Яйца: варка',100,'none','100 100 100 100 100 100 100 100 80 85 95 95 95 75 75 75 80 85 100 100 100 100'),
+ U('e2','Яйца: жарка, омлет',88,'none','100 100 100 100 100 100 100 100 80 85 95 95 95 75 75 75 85 85 100 100 100 100'),
+ U('e3','Яйца: запекание',90,'none','100 100 100 100 100 100 100 100 80 80 95 90 95 75 75 75 80 80 100 100 100 100'),
+ U('d1','Молоко: нагрев около 10 мин',98,'none','100 100 100 100 100 100 100 100 85 90 100 100 90 85 85 85 90 80 100 100 100 100'),
+ U('d2','Молоко: нагрев около 30 мин',92,'none','100 100 100 100 100 100 100 100 65 75 100 100 75 80 80 80 75 55 100 100 100 100'),
+ U('d3','Сыр: запекание',95,'none','100 100 100 100 100 100 100 100 65 75 100 100 75 80 80 80 75 55 100 100 100 100'),
+ U('v1','Овощи: варка, отвар сливают',95,'skp','95 95 95 90 90 95 95 95 80 85 95 90 90 70 70 70 100 100 90 90 100 90'),
+ U('v2','Листовая зелень: варка, отвар сливают',90,'skp','95 95 95 90 90 95 95 95 60 85 95 90 90 65 65 65 100 100 95 95 100 95'),
+ U('v3','Корнеплоды: варка, отвар сливают',97,'skp','95 95 95 90 90 95 95 95 70 85 95 95 95 70 70 70 100 100 90 90 100 90'),
+ U('v4','Овощи: на пару',97,'none','100 100 100 100 100 100 100 100 85 90 95 95 90 85 85 85 100 100 95 95 100 95'),
+ U('v5','Овощи: запекание',80,'none','100 100 100 100 100 100 100 100 85 90 95 95 95 85 85 85 100 100 95 95 100 95'),
+ U('v6','Овощи: пассерование, жарка',75,'none','100 100 100 100 100 100 100 100 75 85 95 95 95 70 70 70 100 100 85 85 100 85'),
+ U('k1','Картофель: запекание в кожуре',80,'none','100 100 100 100 100 100 100 100 80 85 95 95 95 90 90 90 100 100 100 100 100 100'),
+ U('k2','Картофель: варка в кожуре',97,'none','95 95 95 95 90 95 95 95 75 80 95 95 95 90 90 90 100 100 100 100 100 100'),
+ U('k3','Картофель: жарка',69,'none','100 100 100 100 100 100 100 100 80 80 95 95 95 75 75 75 95 100 100 100 100 100'),
+ U('g1','Бобовые: варка, отвар сливают',210,'skp','85 85 80 90 75 90 85 70 65 65 75 70 70 60 60 60 100 100 85 85 100 85'),
+ U('g2','Рис и крупы: варка',280,'none','95 90 95 90 85 95 95 90 75 75 90 95 90 60 60 60 100 100 95 95 100 95'),
+ U('g3','Макаронные изделия: варка, отвар сливают',250,'skp','95 75 85 85 30 50 100 90 70 65 75 65 80 70 70 70 95 100 95 95 100 95'),
+ U('b1','Мучные изделия: выпечка',88,'none','100 100 100 100 100 100 100 100 80 80 90 90 90 70 70 70 95 100 90 90 100 90'),
+ U('r1','Фрукты и ягоды: запекание',85,'none','95 100 100 100 90 100 100 90 80 80 95 90 95 60 60 60 100 100 85 85 100 85'),
+ U('r2','Фрукты и ягоды: варка, припускание',95,'none','95 100 100 100 90 100 100 90 70 80 90 90 90 50 50 50 100 100 75 75 100 75')
+];
+function retention(st){
+  const mi=MICRO.find(x=>x.id===st.micro)||MICRO[0], ma=MACRO[st.macro]||MACRO.none;
+  const R=Object.assign({prot:ma.v[0],fat:ma.v[1],carb:ma.v[2]},mi.v,st.ret||{});
+  R.ash=(R.na+R.k+R.ca+R.mg+R.p)/5;
+  return R;
+}
+function compute(st, lookup){
+  const items=st.items.map(it=>({f:lookup(it.fid),m:+it.m||0})).filter(x=>x.f&&x.m>0);
+  const M=items.reduce((s,x)=>s+x.m,0), R=retention(st);
+  const Mout=M*(+st.yield||100)/100;
+  const raw={},fin={},cov={},miss={};
+  for(const k of ALLK){
+    let a=0,c=0; const ms=[];
+    for(const x of items){ const v=fv(x.f,k); if(v==null) ms.push(x.f.name); else { a+=x.m*v/100; c+=x.m; } }
+    raw[k]=a; cov[k]=M?c/M:1; miss[k]=ms;
+    const r=META[k].r; fin[k]=a*(r?R[r]:100)/100;
+  }
+  raw.protAA=items.reduce((t,x)=>t+(fv(x.f,'lys')==null?0:x.m*(fv(x.f,'prot')||0)/100),0); fin.protAA=raw.protAA*R.prot/100;
+  raw.ne=raw.b3+raw.trp*1000/60; fin.ne=fin.b3+fin.trp*1000/60; cov.ne=Math.min(cov.b3,cov.trp); miss.ne=miss.b3;
+  fin.water=Mout-(fin.prot+fin.fat+fin.carb+fin.fib+fin.ash+fin.alc);
+  const per=(o,m)=>{const r={}; for(const k in o) r[k]=m?o[k]/m*100:0; return r;};
+  return {items,M,Mout,R,raw,fin,cov,miss,raw100:per(raw,M),fin100:per(fin,Mout),waterNeg:fin.water<-1e-9};
+}
+function energy(p){ return {kcal:4*p.prot+9*p.fat+4*p.carb+2*p.fib+7*p.alc, kj:17*p.prot+37*p.fat+17*p.carb+8*p.fib+29*p.alc, kcal494:4*p.prot+9*p.fat+4*p.carb}; }
+
+const AAREF={
+  fao1973:{n:'ФАО/ВОЗ, 1973',v:{ile:40,leu:70,lys:55,saa:35,aaa:60,thr:40,trp:10,val:50}},
+  who2007:{n:'ФАО/ВОЗ/УООН, 2007 (взрослые)',v:{his:15,ile:30,leu:59,lys:45,saa:22,aaa:38,thr:23,trp:6,val:39}},
+  fao2013:{n:'ФАО, 2013 (старше 3 лет и взрослые)',v:{his:16,ile:30,leu:61,lys:48,saa:23,aaa:41,thr:25,trp:6.6,val:40}},
+  fao2013c:{n:'ФАО, 2013 (дети 0,5–3 года)',v:{his:20,ile:32,leu:66,lys:57,saa:27,aaa:52,thr:31,trp:8.5,val:43}}
+};
+const AAN={his:'Гистидин',ile:'Изолейцин',leu:'Лейцин',lys:'Лизин',saa:'Метионин + цистин',aaa:'Фенилаланин + тирозин',thr:'Треонин',trp:'Триптофан',val:'Валин'};
+function proteinQuality(p, refKey){
+  const ref=AAREF[refKey].v, P=(p.protAA>0?p.protAA:p.prot); if(!(P>0)) return null;
+  const g={his:p.his,ile:p.ile,leu:p.leu,lys:p.lys,saa:p.met+p.cys,aaa:p.phe+p.tyr,thr:p.thr,trp:p.trp,val:p.val};
+  const rows=Object.keys(ref).map(k=>{ const a=g[k]/P*1000; return {k,n:AAN[k],g:g[k],a,e:ref[k],c:a/ref[k]}; });
+  const cmin=Math.min(...rows.map(r=>r.c)), lim=rows.find(r=>r.c===cmin), n=rows.length;
+  const kras=rows.reduce((s,r)=>s+(r.c-cmin),0)/n*100;
+  const sumA=rows.reduce((s,r)=>s+r.a,0), sumE=rows.reduce((s,r)=>s+r.e,0);
+  const util=sumA?cmin*sumE/sumA:0;
+  const sigma=cmin?rows.reduce((s,r)=>s+(r.a-cmin*r.e),0)/cmin/10:0;
+  const eaai=Math.pow(rows.reduce((s,r)=>s*Math.max(Math.min(r.c,1),0.01),1),1/n)*100;
+  const ess=p.val+p.ile+p.leu+p.lys+p.met+p.thr+p.trp+p.phe+p.his;
+  const non=p.arg+p.ala+p.asp+p.glut+p.gly+p.pro+p.ser+p.cys+p.tyr+(p.hyp||0);
+  return {rows,cmin,lim,kras,bv:100-kras,util,sigma,eaai,ess,non,P,share:p.prot>0?P/p.prot:1,trpHyp:p.hyp>0?p.trp/p.hyp:null};
+}
+function lipidIndices(p, kcal){
+  const s=p.sfa,m=p.mufa,u=p.pufa,n3=p.n3,n6=p.n6, d=(a,b)=>b>0?a/b:null;
+  const tiDen=0.5*m+0.5*n6+3*n3+(n6>0?n3/n6:0);
+  return { s,m,u,n3,n6, ratio:s>0?[1,m/s,u/s]:null, n6n3:d(n6,n3), ps:d(u,s),
+    ai:d(p.c12+4*p.c14+p.c16,m+u), ti:d(p.c14+p.c16+p.c18,tiDen),
+    hH:d(p.c18_1+p.c18_2+p.c18_3+p.c20_4+p.c20_5+p.c22_5+p.c22_6,p.c14+p.c16),
+    eS:d(s*9,kcal)*100,eM:d(m*9,kcal)*100,eU:d(u*9,kcal)*100,e6:d(n6*9,kcal)*100,e3:d(n3*9,kcal)*100,eT:d(p.trans*9,kcal)*100,
+    sumFA:s+m+u };
+}
+const NORMS={
+  tr:{n:'ТР ТС 022/2011, приложение 2',v:{kcal:2500,prot:75,fat:83,pufa:11,carb:365,sug:65,fib:30,ca:1000,p:800,fe:14,mg:400,zn:15,k:3500,se:70,va:800,vd:5,ve:10,vc:60,b1:1.4,b2:1.6,ne:18,b6:2,fol:200,b12:1,b5:6}},
+  mrm:{n:'МР 2.3.1.0253-21, мужчины',v:{fib:20,chl:300,ca:1000,p:700,mg:420,k:3500,na:1300,fe:10,zn:12,cu:1,mn:2,se:70,f:4000,va:900,bcar:5000,vd:15,ve:15,vk:120,vc:100,b1:1.5,b2:1.8,ne:20,b5:5,b6:2,fol:400,b12:3,choline:500}},
+  mrw:{n:'МР 2.3.1.0253-21, женщины',v:{fib:20,chl:300,ca:1000,p:700,mg:420,k:3500,na:1300,fe:18,zn:12,cu:1,mn:2,se:55,f:4000,va:800,bcar:5000,vd:15,ve:15,vk:120,vc:100,b1:1.5,b2:1.8,ne:20,b5:5,b6:2,fol:400,b12:3,choline:500}}
+};
+function roundEnergyTR(x){ if(x<1) return 1; if(x<=5) return Math.round(x); if(x<=100) return Math.round(x/5)*5; return Math.round(x/10)*10; }
+function roundMacroTR(x){ if(x<0.5) return Math.round(x*10)/10; if(x<=10) return Math.round(x*2)/2; return Math.round(x); }
+/*ENDCORE*/
+
+/* ---------- состояние и хранилище ---------- */
+const LS={get(k,d){try{const s=localStorage.getItem('nvc_'+k);return s?JSON.parse(s):d}catch(e){return d}},set(k,v){try{localStorage.setItem('nvc_'+k,JSON.stringify(v))}catch(e){}}};
+const FOODS=new Map(); let CATS=DB.cats.slice();
+DB.foods.forEach(a=>FOODS.set('r'+a[0],{id:'r'+a[0],name:a[1],cat:DB.cats[a[2]],en:a[3],v:a[4],src:'ru'}));
+function userToFood(u){ const v=KEYS.map(()=>null); for(const k in u.v){ if(k==='carb') continue; if(KI[k]!=null) v[KI[k]]=u.v[k]; }
+  if(u.v.carb!=null) v[KI.carbt]=u.v.carb+(u.v.fib||0);
+  return {id:u.id,name:u.name,cat:'Свои продукты',en:'',v,src:'user',raw:u}; }
+let USER=LS.get('user',[]); USER.forEach(u=>FOODS.set(u.id,userToFood(u)));
+const EXAMPLE={name:'Котлеты из баранины (пример)',items:[{fid:'r17224',m:700},{fid:'r11282',m:120},{fid:'r18029',m:100},{fid:'r1077',m:60},{fid:'r1123',m:40},{fid:'r2047',m:10},{fid:'r2030',m:1}],macro:'none',micro:'m2',ret:{},yield:81,portion:100,norm:'tr',aaref:'fao2013'};
+let ST=LS.get('state',null)||JSON.parse(JSON.stringify(EXAMPLE));
+ST.items=ST.items.filter(it=>{ if(FOODS.has(it.fid)) return true; if(it.snap){FOODS.set(it.fid,it.snap);return true} return false; });
+let fullLoaded=false;
+function save(){ ST.items.forEach(it=>{const f=FOODS.get(it.fid); if(f&&f.src==='en') it.snap=f; }); LS.set('state',ST); }
+const lookup=id=>FOODS.get(id);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fmt(x,d){ if(x==null||!isFinite(x)) return '–'; if(d==null) d=Math.abs(x)>=100?0:Math.abs(x)>=10?1:2; return x.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function toast(t){ const e=$('#toast'); e.textContent=t; e.style.display='block'; clearTimeout(toast.t); toast.t=setTimeout(()=>e.style.display='none',3200); }
+
+/* ---------- вкладки ---------- */
+const TABS=[['recipe','Рецептура'],['composition','Состав'],['protein','Белок'],['lipids','Жиры'],['label','Маркировка'],['base','Справочник'],['method','Методика']];
+function tab(){ const h=location.hash.slice(1); return TABS.some(t=>t[0]===h)?h:'recipe'; }
+function render(){
+  const t=tab(); $('#tabs').innerHTML=TABS.map(x=>`<a href="#${x[0]}" class="${x[0]===t?'on':''}">${x[1]}</a>`).join('');
+  const C=compute(ST,lookup);
+  $('#view').innerHTML=({recipe:vRecipe,composition:vComp,protein:vProtein,lipids:vLipids,label:vLabel,base:vBase,method:vMethod})[t](C);
+  if(t==='base') baseList();
+}
+addEventListener('hashchange',()=>{render();scrollTo(0,0)});
+
+function gapMark(C,k){ return C.cov[k]<0.999?` <span class="gap" title="Нет данных: ${esc(C.miss[k].join('; '))}">◐</span>`:''; }
+function gapsNote(C,keys){ const g=keys.filter(k=>C.cov[k]<0.999); if(!g.length) return '';
+  return `<details style="margin-top:8px"><summary class="muted" style="font:500 13px var(--body)">◐ Неполные данные по ${g.length} показателям: значение занижено</summary><div class="muted">${g.map(k=>`<div><b>${META[k].n}</b>: нет данных для ${esc(C.miss[k].join('; '))} (охват ${fmt(C.cov[k]*100,0)}% массы)</div>`).join('')}</div></details>`; }
+function tiles(C){ const e=energy(C.fin100), p=C.fin100;
+  return `<div class="tiles">
+  <div class="tile"><b>${fmt(C.M,0)} г</b><span>масса закладки</span></div>
+  <div class="tile"><b>${fmt(C.Mout,0)} г</b><span>выход готового (${fmt(ST.yield,0)}%)</span></div>
+  <div class="tile"><b>${fmt(e.kcal,0)} ккал</b><span>в 100 г готового, ${fmt(e.kj,0)} кДж</span></div>
+  <div class="tile"><b>${fmt(p.prot,1)} / ${fmt(p.fat,1)} / ${fmt(p.carb,1)}</b><span>белки / жиры / углеводы, г</span></div>
+  <div class="tile"><b>${fmt(p.water,1)}%</b><span>влага в готовом продукте</span></div></div>`; }
+
+/* ---------- рецептура ---------- */
+function vRecipe(C){
+  const mi=MICRO.find(x=>x.id===ST.micro)||MICRO[0];
+  const rows=ST.items.map((it,i)=>{ const f=FOODS.get(it.fid); return `<tr><td>${esc(f.name)}${f.src==='en'?' <span class="muted">(USDA)</span>':f.src==='user'?' <span class="muted">(свой)</span>':''}</td>
+   <td><input type="number" inputmode="decimal" min="0" step="any" id="m${i}" data-mass="${i}" value="${it.m}" aria-label="Масса, г"></td><td>${fmt(C.M?it.m/C.M*100:0,1)}</td><td><button class="x" data-del="${i}" aria-label="Удалить">✕</button></td></tr>`; }).join('');
+  const R=C.R, saved=LS.get('recipes',[]);
+  return `<section>
+   <div class="row"><label class="f" style="flex:3 1 220px">Название рецептуры<input id="rname" value="${esc(ST.name)}"></label>
+   <button data-act="saveRecipe" class="pri">Сохранить</button><button data-act="newRecipe">Новая</button></div>
+   ${saved.length?`<div class="row" style="margin-top:8px"><label class="f">Сохранённые рецептуры<select id="savedSel"><option value="">выберите...</option>${saved.map((r,i)=>`<option value="${i}">${esc(r.name)}</option>`).join('')}</select></label><button data-act="loadRecipe">Открыть</button><button data-act="delRecipe" class="x">Удалить</button></div>`:''}
+  </section>
+  ${tiles(C)}
+  ${C.waterNeg?'<div class="note">Выход слишком мал: расчётная масса сухих веществ больше массы готового продукта. Проверьте выход и коэффициенты сохранности.</div>':''}
+  <section><h2>Ингредиенты (масса нетто)</h2>
+   <label class="f">Добавить ингредиент из справочника<input id="q" placeholder="например: баранина, лук, яйцо" autocomplete="off"></label><div id="found"></div>
+   <div class="tw" style="margin-top:10px"><table><thead><tr><th>Ингредиент</th><th>Масса, г</th><th>Доля, %</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="muted">Добавьте ингредиенты через поиск выше.</td></tr>'}
+   <tr class="sum"><td>Итого</td><td>${fmt(C.M,1)}</td><td>100</td><td></td></tr></tbody></table></div>
+   <div class="row" style="margin-top:10px"><label class="f">Пересчитать закладку на массу, г<input type="number" id="scaleTo" inputmode="decimal" placeholder="например 100000"></label><button data-act="scale">Пересчитать</button></div>
+  </section>
+  <section><h2>Тепловая обработка и выход</h2>
+   <div class="row"><label class="f" style="flex:2 1 260px">Способ обработки: сохранность витаминов и минеральных веществ
+    <select id="micro">${MICRO.map(m=>`<option value="${m.id}" ${m.id===ST.micro?'selected':''}>${m.n}</option>`).join('')}</select></label>
+   <label class="f" style="flex:2 1 260px">Потери белков, жиров, углеводов (Скурихин; МУ 4237-86)
+    <select id="macro">${Object.keys(MACRO).map(k=>`<option value="${k}" ${k===ST.macro?'selected':''}>${MACRO[k].n}</option>`).join('')}</select></label></div>
+   <div class="row" style="margin-top:8px"><label class="f">Выход готового продукта, % к закладке<input type="number" id="yield" inputmode="decimal" min="1" step="any" value="${ST.yield}"></label>
+   <label class="f">или масса готового продукта, г<input type="number" id="mout" inputmode="decimal" min="0" step="any" value="${+C.Mout.toFixed(1)}"></label>
+   <label class="f">Масса порции, г<input type="number" id="portion" inputmode="decimal" min="1" step="any" value="${ST.portion}"></label></div>
+   <p class="muted">${mi.y&&mi.id!=='none'?`Ориентировочный выход для этого способа: ${mi.y}%. `:''}Задайте фактический выход по своей технологии: от него зависит содержание влаги и всех веществ в готовом продукте.</p>
+   <details><summary style="font:500 14px var(--body)">Коэффициенты сохранности, % (можно изменить)</summary>
+    <div class="grid2" style="margin-top:8px">${RP.map(r=>{ const as=!['prot','fat','carb'].includes(r[0])&&mi.as.includes(r[0])&&!(ST.ret&&r[0] in ST.ret);
+      return `<label class="f">${r[1]}${as?' *':''}<input type="number" min="0" max="150" step="any" inputmode="decimal" data-ret="${r[0]}" id="ret_${r[0]}" value="${R[r[0]]}"></label>`; }).join('')}</div>
+    <p class="muted">* В источнике для этого вещества коэффициента нет, значение принято по аналогии. Сохранность золы считается как среднее по Na, K, Ca, Mg, P (${fmt(R.ash,0)}%). Пищевые волокна: 100%.</p>
+    <button data-act="resetRet">Сбросить к значениям способа</button></details>
+  </section>
+  <section><div class="row"><button data-act="xlsx" class="pri">Скачать расчёт в Excel</button><button data-act="copy">Скопировать таблицу состава</button><button data-act="example">Загрузить пример</button></div></section>`;
+}
+function findFoods(q,cat,limit){ const w=q.toLowerCase().replace(/ё/g,'е').split(/\s+/).filter(Boolean); const out=[];
+  for(const f of FOODS.values()){ if(cat&&f.cat!==cat) continue; const n=(f.name+' '+f.en).toLowerCase().replace(/ё/g,'е');
+    if(w.every(x=>n.includes(x))){ out.push(f); } }
+  out.sort((a,b)=>(a.src==='en')-(b.src==='en')||a.name.length-b.name.length); return out.slice(0,limit); }
+
+/* ---------- состав ---------- */
+function rowN(C,k,opt){ const m=META[k], N=NORMS[ST.norm].v, por=C.fin100[k]*ST.portion/100;
+  return `<tr><td class="${opt&&opt.sub?'sub':''}">${m.n}${gapMark(C,k)}</td><td>${m.u}</td><td>${fmt(C.raw100[k],m.d)}</td><td>${fmt(C.fin100[k],m.d)}</td><td>${fmt(por,m.d)}</td><td>${N[k]?fmt(por/N[k]*100,0)+'%':''}</td></tr>`; }
+function tbl(C,keys,extra){ return `<div class="tw"><table><thead><tr><th>Показатель</th><th>Ед.</th><th>Сырьё, на 100 г</th><th>Готовый продукт, на 100 г</th><th>Порция ${fmt(ST.portion,0)} г</th><th>% нормы в порции</th></tr></thead><tbody>${(extra||'')+keys.map(k=>rowN(C,k)).join('')}</tbody></table></div>${gapsNote(C,keys)}`; }
+function normSel(){ return `<label class="f" style="max-width:360px">Суточные нормы для сравнения<select id="norm">${Object.keys(NORMS).map(k=>`<option value="${k}" ${k===ST.norm?'selected':''}>${NORMS[k].n}</option>`).join('')}</select></label>`; }
+function vComp(C){
+  const er=energy(C.raw100), ef=energy(C.fin100), N=NORMS[ST.norm].v, por=ef.kcal*ST.portion/100;
+  const eRow=`<tr class="sum"><td>Энергетическая ценность</td><td>ккал</td><td>${fmt(er.kcal,0)}</td><td>${fmt(ef.kcal,0)}</td><td>${fmt(por,0)}</td><td>${N.kcal?fmt(por/N.kcal*100,0)+'%':''}</td></tr>
+  <tr><td class="sub">то же</td><td>кДж</td><td>${fmt(er.kj,0)}</td><td>${fmt(ef.kj,0)}</td><td>${fmt(ef.kj*ST.portion/100,0)}</td><td></td></tr>
+  <tr><td class="sub">по коэффициентам 4–9–4 без волокон</td><td>ккал</td><td>${fmt(er.kcal494,0)}</td><td>${fmt(ef.kcal494,0)}</td><td>${fmt(ef.kcal494*ST.portion/100,0)}</td><td></td></tr>`;
+  const sh=(p,e)=>`${fmt(p.prot*4/e.kcal*100,0)} : ${fmt(p.fat*9/e.kcal*100,0)} : ${fmt(p.carb*4/e.kcal*100,0)}`;
+  const dm=p=>100-p.water;
+  const polyR=C.raw100.carb-C.raw100.sug, polyF=C.fin100.carb-C.fin100.sug;
+  const poly=`<tr><td>Крахмал и другие полисахариды (по разности)${gapMark(C,'sug')}</td><td>г</td><td>${fmt(polyR,2)}</td><td>${fmt(polyF,2)}</td><td>${fmt(polyF*ST.portion/100,2)}</td><td></td></tr>`;
+  const p=C.fin100, rat=(a,b)=>b>0?fmt(a/b,2):'–';
+  return `${tiles(C)}<section>${normSel()}</section>
+  <details class="card" open><summary>Общий состав и энергия</summary>${tbl(C,ORDER.main,eRow)}
+   <div class="tiles" style="margin-top:10px"><div class="tile"><b>${sh(C.fin100,ef)}</b><span>доля энергии Б : Ж : У, % (готовый)</span></div>
+   <div class="tile"><b>${fmt(dm(C.raw100),1)} → ${fmt(dm(C.fin100),1)}%</b><span>сухие вещества: сырьё → готовый</span></div>
+   <div class="tile"><b>${rat(p.water,p.prot)}</b><span>влага : белок</span></div><div class="tile"><b>${rat(p.fat,p.prot)}</b><span>жир : белок</span></div></div></details>
+  <details class="card" open><summary>Углеводный состав</summary>${tbl(C,['carb'].concat(ORDER.carb,['fib']),'').replace('</tbody>',poly+'</tbody>')}</details>
+  <details class="card" open><summary>Минеральные вещества</summary>${tbl(C,ORDER.min)}
+   <div class="tiles" style="margin-top:10px"><div class="tile"><b>1 : ${rat(p.p,p.ca)}</b><span>Ca : P (оптимум 1 : 1–1,5)</span></div><div class="tile"><b>1 : ${rat(p.mg,p.ca)}</b><span>Ca : Mg (оптимум 1 : 0,5)</span></div><div class="tile"><b>1 : ${rat(p.k,p.na)}</b><span>Na : K</span></div></div>
+   <p class="muted">Йод, хром и молибден в базе USDA не определяются: добавьте их вручную через свой продукт, если они нужны.</p></details>
+  <details class="card" open><summary>Витамины</summary>${tbl(C,ORDER.vit)}
+   <p class="muted">Ниациновый эквивалент = ниацин + триптофан / 60.</p></details>`;
+}
+
+/* ---------- белок ---------- */
+function vProtein(C){
+  const q=proteinQuality(C.fin100,ST.aaref), qr=proteinQuality(C.raw100,ST.aaref);
+  if(!q) return '<section>В рецептуре нет белка.</section>';
+  const aaK=ORDER.aa.concat(ORDER.naa);
+  const rows=q.rows.map(r=>`<tr><td>${r.n}${r.k===q.lim.k?' <span class="pill bad">лимитирующая</span>':''}</td><td>${fmt(r.g,3)}</td><td>${fmt(r.a,1)}</td><td>${fmt(r.e,1)}</td><td>${fmt(r.c*100,0)}</td><td><div class="bar"><i class="${r.k===q.lim.k?'lim':''}" style="width:${Math.min(r.c*50,100)}%"></i><u></u></div></td></tr>`).join('');
+  const all=aaK.map(k=>`<tr><td>${META[k].n}${gapMark(C,k)}</td><td>${fmt(C.raw100[k],3)}</td><td>${fmt(C.fin100[k],3)}</td><td>${fmt(C.fin100[k]*ST.portion/100,3)}</td><td>${fmt(C.fin100[k]/q.P*1000,1)}</td></tr>`).join('');
+  const cls=q.cmin>=1?'ok':q.cmin>=0.8?'warn':'bad';
+  return `<section><label class="f" style="max-width:360px">Эталонный белок<select id="aaref">${Object.keys(AAREF).map(k=>`<option value="${k}" ${k===ST.aaref?'selected':''}>${AAREF[k].n}</option>`).join('')}</select></label></section>
+  <div class="tiles">
+   <div class="tile"><b class="${cls}">${fmt(q.cmin*100,0)}%</b><span>минимальный скор: ${q.lim.n.toLowerCase()}</span></div>
+   <div class="tile"><b>${fmt(q.kras,1)}%</b><span>КРАС (разбалансированность)</span></div>
+   <div class="tile"><b>${fmt(q.bv,1)}%</b><span>биологическая ценность = 100 − КРАС</span></div>
+   <div class="tile"><b>${fmt(q.util,2)}</b><span>коэффициент утилитарности U</span></div>
+   <div class="tile"><b>${fmt(q.sigma,2)}</b><span>сопоставимая избыточность σ, г/100 г белка эталона</span></div>
+   <div class="tile"><b>${fmt(q.eaai,0)}</b><span>индекс незаменимых аминокислот (EAAI)</span></div>
+   <div class="tile"><b>${fmt(q.ess,2)} г</b><span>сумма незаменимых в 100 г готового</span></div>
+   <div class="tile"><b>${fmt(q.non?q.ess/q.non:null,2)}</b><span>незаменимые : заменимые</span></div>
+   ${q.trpHyp!=null?`<div class="tile"><b>${fmt(q.trpHyp,2)}</b><span>триптофан : оксипролин (БКП)</span></div>`:''}
+  </div>
+  ${q.share<0.999?`<div class="note">Для части ингредиентов в справочнике нет аминокислотного состава. Показатели качества белка рассчитаны по ингредиентам с данными: это ${fmt(q.share*100,0)}% белка рецептуры.</div>`:''}
+  <section><h2>Аминокислотный скор, готовый продукт</h2>
+   <div class="tw"><table><thead><tr><th>Аминокислота</th><th>г в 100 г продукта</th><th>мг на 1 г белка</th><th>Эталон, мг/г</th><th>Скор, %</th><th>0–200%</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <p class="muted">Скор сырья и готового продукта совпадает (${fmt(qr.cmin*100,0)}%), потому что потери всех аминокислот приняты равными потерям белка. Вертикальная черта на шкале: 100%.</p>${gapsNote(C,ORDER.aa)}</section>
+  <section><h2>Полный аминокислотный состав</h2>
+   <div class="tw"><table><thead><tr><th>Аминокислота</th><th>Сырьё, г/100 г</th><th>Готовый, г/100 г</th><th>Порция, г</th><th>мг на 1 г белка</th></tr></thead><tbody>
+   <tr class="sum"><td>Белок</td><td>${fmt(C.raw100.prot,2)}</td><td>${fmt(C.fin100.prot,2)}</td><td>${fmt(C.fin100.prot*ST.portion/100,2)}</td><td>1000</td></tr>${all}</tbody></table></div>${gapsNote(C,ORDER.naa)}</section>`;
+}
+
+/* ---------- жиры ---------- */
+function vLipids(C){
+  const p=C.fin100, e=energy(p), L=lipidIndices(p,e.kcal);
+  if(!(p.fat>0)) return '<section>В рецептуре нет жира.</section>';
+  const rg=(v,lo,hi,d)=>v==null?'–':`<span class="${(lo!=null&&v<lo)||(hi!=null&&v>hi)?'warn':'ok'}">${fmt(v,d==null?2:d)}</span>`;
+  const sumFA=L.sumFA||1;
+  const grp=(c,t,tot)=>{ const ks=ORDER.fa.filter(k=>META[k].c===c&&(C.raw100[k]>0.0005));
+    return `<tr class="sum"><td>${t}</td><td>${fmt(C.raw100[tot],3)}</td><td>${fmt(p[tot],3)}</td><td>${fmt(p[tot]*ST.portion/100,3)}</td><td>${fmt(p[tot]/sumFA*100,1)}</td></tr>`+
+    ks.map(k=>`<tr><td class="sub">${META[k].n}${gapMark(C,k)}</td><td>${fmt(C.raw100[k],3)}</td><td>${fmt(p[k],3)}</td><td>${fmt(p[k]*ST.portion/100,3)}</td><td>${fmt(p[k]/sumFA*100,1)}</td></tr>`).join(''); };
+  return `<div class="tiles">
+   <div class="tile"><b>${L.ratio?`1 : ${fmt(L.ratio[1],2)} : ${fmt(L.ratio[2],2)}`:'–'}</b><span>НЖК : МНЖК : ПНЖК</span></div>
+   <div class="tile"><b>${L.n6n3!=null?rg(L.n6n3,null,10,1)+' : 1':'–'}</b><span>ω-6 : ω-3 (рекомендуется 5–10 : 1)</span></div>
+   <div class="tile"><b>${rg(L.ps,0.4,null)}</b><span>ПНЖК / НЖК (желательно не ниже 0,4)</span></div>
+   <div class="tile"><b>${rg(L.ai,null,1)}</b><span>индекс атерогенности (ИА)</span></div>
+   <div class="tile"><b>${rg(L.ti,null,1)}</b><span>индекс тромбогенности (ИТ)</span></div>
+   <div class="tile"><b>${rg(L.hH,2,null)}</b><span>гипо- / гиперхолестеринемические кислоты (h/H)</span></div>
+   <div class="tile"><b>${fmt(p.chl,0)} мг</b><span>холестерин в 100 г готового</span></div></div>
+  <section><h2>Доля энергии от жирных кислот, готовый продукт</h2>
+   <div class="tw"><table><thead><tr><th>Группа</th><th>% энергии</th><th>Ориентир МР 2.3.1.0253-21 для рациона</th></tr></thead><tbody>
+   <tr><td>НЖК</td><td>${rg(L.eS,null,10,1)}</td><td>не более 10%</td></tr><tr><td>МНЖК</td><td>${fmt(L.eM,1)}</td><td>около 10%</td></tr>
+   <tr><td>ПНЖК</td><td>${rg(L.eU,6,10,1)}</td><td>6–10%</td></tr><tr><td>ω-6</td><td>${rg(L.e6,5,8,1)}</td><td>5–8%</td></tr>
+   <tr><td>ω-3</td><td>${rg(L.e3,1,2,1)}</td><td>1–2%</td></tr><tr><td>Трансизомеры${gapMark(C,'trans')}</td><td>${rg(L.eT,null,1,2)}</td><td>не более 1%</td></tr></tbody></table></div>
+   <p class="muted">Ориентиры относятся к суточному рациону, для отдельного продукта это справочное сравнение.</p></section>
+  <section><h2>Жирнокислотный состав</h2>
+   <div class="tw"><table><thead><tr><th>Кислота</th><th>Сырьё, г/100 г</th><th>Готовый, г/100 г</th><th>Порция, г</th><th>% от суммы ЖК</th></tr></thead><tbody>
+   <tr class="sum"><td>Жир общий</td><td>${fmt(C.raw100.fat,2)}</td><td>${fmt(p.fat,2)}</td><td>${fmt(p.fat*ST.portion/100,2)}</td><td></td></tr>
+   ${grp('s','Насыщенные (НЖК)','sfa')}${grp('m','Мононенасыщенные (МНЖК)','mufa')}${grp('p','Полиненасыщенные (ПНЖК)','pufa')}
+   <tr><td>ω-6 ПНЖК${gapMark(C,'n6')}</td><td>${fmt(C.raw100.n6,3)}</td><td>${fmt(p.n6,3)}</td><td>${fmt(p.n6*ST.portion/100,3)}</td><td>${fmt(p.n6/sumFA*100,1)}</td></tr>
+   <tr><td>ω-3 ПНЖК${gapMark(C,'n3')}</td><td>${fmt(C.raw100.n3,3)}</td><td>${fmt(p.n3,3)}</td><td>${fmt(p.n3*ST.portion/100,3)}</td><td>${fmt(p.n3/sumFA*100,1)}</td></tr>
+   <tr><td>Трансизомеры${gapMark(C,'trans')}</td><td>${fmt(C.raw100.trans,3)}</td><td>${fmt(p.trans,3)}</td><td>${fmt(p.trans*ST.portion/100,3)}</td><td></td></tr>
+   <tr><td>Холестерин, мг</td><td>${fmt(C.raw100.chl,0)}</td><td>${fmt(p.chl,0)}</td><td>${fmt(p.chl*ST.portion/100,0)}</td><td></td></tr>
+   <tr><td>Фитостерины, мг${gapMark(C,'phyto')}</td><td>${fmt(C.raw100.phyto,0)}</td><td>${fmt(p.phyto,0)}</td><td>${fmt(p.phyto*ST.portion/100,0)}</td><td></td></tr>
+   </tbody></table></div>${gapsNote(C,['sfa','mufa','pufa','n3','n6','trans','phyto'])}
+   <p class="muted">Показаны кислоты, которые присутствуют в рецептуре. Сумма ЖК = НЖК + МНЖК + ПНЖК; она меньше массы жира, так как в жире есть глицерин и сопутствующие липиды.</p></section>`;
+}
+
+/* ---------- маркировка ---------- */
+function vLabel(C){
+  const p=C.fin100, e=energy(p), N=NORMS.tr.v;
+  const comp=C.items.slice().sort((a,b)=>b.m-a.m).map(x=>x.f.name.split(',')[0].split('(')[0].trim().toLowerCase());
+  const uniq=[...new Set(comp)];
+  const mk=['ca','p','fe','mg','zn','k','se','va','vd','ve','vc','b1','b2','ne','b6','fol','b12','b5'];
+  const micro=mk.map(k=>({k,pc:p[k]/N[k]*100})).filter(x=>x.pc>=5).sort((a,b)=>b.pc-a.pc);
+  const claims=[]; const pe=p.prot*4/e.kcal*100;
+  if(pe>=20) claims.push('Высокое содержание белка: белок даёт '+fmt(pe,0)+'% энергии (порог 20%)'); else if(pe>=12) claims.push('Источник белка: белок даёт '+fmt(pe,0)+'% энергии (порог 12%)');
+  if(p.fib>=6) claims.push('Высокое содержание пищевых волокон: '+fmt(p.fib,1)+' г/100 г (порог 6 г)'); else if(p.fib>=3) claims.push('Источник пищевых волокон: '+fmt(p.fib,1)+' г/100 г (порог 3 г)');
+  micro.forEach(x=>{ if(x.pc>=30) claims.push('Высокое содержание: '+META[x.k].n.toLowerCase()+', '+fmt(x.pc,0)+'% суточной потребности в 100 г (порог 30%)'); else if(x.pc>=15) claims.push('Источник: '+META[x.k].n.toLowerCase()+', '+fmt(x.pc,0)+'% суточной потребности в 100 г (порог 15%)'); });
+  return `<section><h2>Пищевая ценность для этикетки, на 100 г готового продукта</h2>
+   <div class="tw"><table><thead><tr><th>Показатель</th><th>Расчёт</th><th>С округлением по ТР ТС 022/2011</th><th>% суточной потребности</th></tr></thead><tbody>
+   <tr><td>Белки, г</td><td>${fmt(p.prot,2)}</td><td>${fmt(roundMacroTR(p.prot))}</td><td>${fmt(p.prot/N.prot*100,0)}%</td></tr>
+   <tr><td>Жиры, г</td><td>${fmt(p.fat,2)}</td><td>${fmt(roundMacroTR(p.fat))}</td><td>${fmt(p.fat/N.fat*100,0)}%</td></tr>
+   <tr><td>Углеводы, г</td><td>${fmt(p.carb,2)}</td><td>${fmt(roundMacroTR(p.carb))}</td><td>${fmt(p.carb/N.carb*100,0)}%</td></tr>
+   <tr><td>Энергетическая ценность, ккал</td><td>${fmt(e.kcal,1)}</td><td>${fmt(roundEnergyTR(e.kcal),0)}</td><td>${fmt(e.kcal/N.kcal*100,0)}%</td></tr>
+   <tr><td>Энергетическая ценность, кДж</td><td>${fmt(e.kj,1)}</td><td>${fmt(roundEnergyTR(e.kj),0)}</td><td></td></tr></tbody></table></div>
+   <p class="muted">Коэффициенты: белки 4 ккал/г (17 кДж), жиры 9 (37), углеводы 4 (17), пищевые волокна 2 (8), спирт 7 (29).</p></section>
+  <section><h2>Состав в порядке убывания массовой доли</h2><p>${esc(uniq.join(', '))||'–'}</p>
+   <p class="muted">Черновик по названиям из справочника. Отредактируйте наименования по своим ТУ или СТО.</p></section>
+  <section><h2>Витамины и минеральные вещества от 5% суточной потребности</h2>
+   ${micro.length?`<div class="tw"><table><thead><tr><th>Вещество</th><th>В 100 г</th><th>% суточной потребности</th></tr></thead><tbody>${micro.map(x=>`<tr><td>${META[x.k].n}${gapMark(C,x.k==='ne'?'b3':x.k)}</td><td>${fmt(p[x.k],META[x.k].d)} ${META[x.k].u}</td><td>${fmt(x.pc,0)}%</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">Нет веществ выше порога 5%.</p>'}</section>
+  <section><h2>Возможные заявления об отличительных признаках</h2>
+   ${claims.length?'<ul>'+claims.map(c=>`<li>${c}</li>`).join('')+'</ul>':'<p class="muted">Пороги приложения 5 ТР ТС 022/2011 не достигнуты.</p>'}
+   <div class="note">Расчётные значения служат основой для маркировки. Заявления на этикетке подтверждают лабораторными испытаниями готового продукта.</div></section>`;
+}
+
+/* ---------- справочник ---------- */
+let BASEQ='', BASECAT='', BASESEL=null;
+function vBase(){
+  const nUser=USER.length;
+  return `<section><h2>Справочник состава</h2>
+   <p class="muted">Основная база: ${DB.foods.length} видов сырья с русскими названиями. ${fullLoaded?'Расширенная база USDA подключена, всего продуктов: '+FOODS.size+'.':''} Свои продукты: ${nUser}.</p>
+   <div class="row"><label class="f" style="flex:2 1 200px">Поиск<input id="bq" value="${esc(BASEQ)}" placeholder="название продукта" autocomplete="off"></label>
+   <label class="f">Группа<select id="bcat"><option value="">все</option>${[...new Set([...FOODS.values()].map(f=>f.cat))].map(c=>`<option ${c===BASECAT?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
+   <div class="row" style="margin-top:8px">${fullLoaded?'':'<button data-act="loadFull">Подключить расширенную базу USDA (8 058 продуктов, названия на английском, 4,5 МБ)</button>'}</div>
+   <div id="blist" style="margin-top:10px"></div></section>
+  <div id="bdetail"></div>
+  <details class="card" id="ownForm"><summary>Добавить свой продукт (например, по таблицам Скурихина или протоколу испытаний)</summary>
+   <p class="muted">Заполните то, что известно, на 100 г продукта. Пустое поле означает отсутствие данных и будет отмечено в расчёте значком ◐.</p>
+   <label class="f">Название<input id="u_name"></label>
+   ${[['main','Основной состав'],['carb','Углеводы'],['min','Минеральные вещества'],['vit','Витамины'],['aa','Незаменимые аминокислоты'],['naa','Заменимые аминокислоты'],['lip','Липиды'],['fa','Жирные кислоты']].map(g=>`<details ${g[0]==='main'?'open':''}><summary style="font:500 14px var(--body);margin:8px 0">${g[1]}</summary><div class="grid2">${ORDER[g[0]].filter(k=>k!=='ne').map(k=>`<label class="f">${META[k].n}, ${META[k].u}<input type="number" step="any" min="0" inputmode="decimal" id="u_${k}"></label>`).join('')}</div></details>`).join('')}
+   <div class="row" style="margin-top:10px"><button class="pri" data-act="addUser">Сохранить продукт</button><button data-act="expUser">Выгрузить свои продукты (JSON)</button>
+   <label class="f">Загрузить свои продукты из JSON<input type="file" id="impUser" accept=".json,application/json"></label></div>
+  </details>`;
+}
+function baseList(){ const el=$('#blist'); if(!el) return; const res=findFoods(BASEQ,BASECAT,60);
+  el.innerHTML=`<div class="tw"><table><thead><tr><th>Продукт</th><th>Вода</th><th>Белки</th><th>Жиры</th><th>Углев.</th><th>ккал</th><th></th></tr></thead><tbody>${res.map(f=>{const p={}; ['water','prot','fat','carb','fib','alc'].forEach(k=>p[k]=fv(f,k)||0);
+   return `<tr><td><a href="#base" data-show="${f.id}">${esc(f.name)}</a></td><td>${fmt(p.water,1)}</td><td>${fmt(p.prot,1)}</td><td>${fmt(p.fat,1)}</td><td>${fmt(p.carb,1)}</td><td>${fmt(energy(p).kcal,0)}</td><td><button data-add="${f.id}">+</button></td></tr>`;}).join('')||'<tr><td colspan="7" class="muted">Ничего не найдено.</td></tr>'}</tbody></table></div><p class="muted">Показано до 60 позиций. Нажмите на название, чтобы увидеть полный состав, или «+», чтобы добавить 100 г в рецептуру.</p>`; }
+function baseDetail(id){ const f=FOODS.get(id); if(!f) return; BASESEL=id;
+  const sec=(t,ks)=>{ const r=ks.filter(k=>k!=='ne').map(k=>{const v=fv(f,k); return v==null?'':`<tr><td>${META[k].n}</td><td>${fmt(v,META[k].d)} ${META[k].u}</td></tr>`}).join(''); return r?`<h3>${t}</h3><div class="tw"><table><tbody>${r}</tbody></table></div>`:''; };
+  $('#bdetail').innerHTML=`<section><h2>${esc(f.name)}</h2><p class="muted">${f.src==='user'?'Свой продукт.':'Источник: USDA SR, вып. 26, № '+f.id.slice(1)+(f.en&&f.src==='ru'?' ('+esc(f.en)+')':'')+'.'} Значения на 100 г съедобной части. Показатели без данных скрыты.</p>
+   <div class="row"><button class="pri" data-add="${f.id}">Добавить в рецептуру</button>${f.src==='user'?`<button class="x" data-deluser="${f.id}">Удалить продукт</button>`:''}</div>
+   ${sec('Основной состав',ORDER.main)}${sec('Углеводы',ORDER.carb)}${sec('Минеральные вещества',ORDER.min)}${sec('Витамины',ORDER.vit)}${sec('Аминокислоты',ORDER.aa.concat(ORDER.naa))}${sec('Липиды',ORDER.lip)}${sec('Жирные кислоты',ORDER.fa.filter(k=>fv(f,k)>0))}</section>`;
+  $('#bdetail').scrollIntoView({behavior:'smooth',block:'start'}); }
+
+/* ---------- методика ---------- */
+function vMethod(){ return `<section class="prose"><h2>Как считает калькулятор</h2>
+ <p><b>Сырьё.</b> Количество каждого вещества в закладке: сумма по ингредиентам <code>m · c / 100</code>, где m – масса нетто, г; c – содержание в 100 г по справочнику. Состав на 100 г сырья: сумма, делённая на массу закладки.</p>
+ <p><b>Готовый продукт.</b> Количество вещества умножается на коэффициент сохранности выбранного способа обработки, затем делится на массу готового продукта (закладка × выход). Влага готового продукта: масса готового минус белки, жиры, углеводы, волокна, зола и спирт после обработки.</p>
+ <p><b>Углеводы.</b> Усвояемые углеводы = углеводы по разности минус пищевые волокна. Крахмал и другие полисахариды по разности = усвояемые углеводы минус сахара.</p>
+ <p><b>Энергия.</b> По ТР ТС 022/2011: белки 4, жиры 9, углеводы 4, пищевые волокна 2, спирт 7 ккал/г.</p>
+ <p><b>Белок.</b> Скор <code>C = A / A<sub>э</sub></code>, где A – мг аминокислоты на 1 г белка, A<sub>э</sub> – то же в эталоне. КРАС = среднее по незаменимым аминокислотам (C − C<sub>min</sub>), %. Биологическая ценность = 100 − КРАС. Коэффициент утилитарности <code>U = C<sub>min</sub> · ΣA<sub>э</sub> / ΣA</code>. Сопоставимая избыточность <code>σ = Σ(A − C<sub>min</sub>·A<sub>э</sub>) / C<sub>min</sub></code> (Липатов Н. Н.). EAAI – среднее геометрическое скоров, ограниченных 100% (Oser).</p>
+ <p><b>Жиры.</b> ИА = (C12:0 + 4·C14:0 + C16:0) / (МНЖК + ПНЖК). ИТ = (C14:0 + C16:0 + C18:0) / (0,5·МНЖК + 0,5·ω-6 + 3·ω-3 + ω-3/ω-6) (Ulbricht, Southgate, 1991). h/H = (C18:1 + C18:2 + C18:3 + C20:4 + C20:5 + C22:5 + C22:6) / (C14:0 + C16:0). ω-3 = α-линоленовая + C18:4 + ЭПК + ДПК + ДГК; ω-6 = линолевая + γ-линоленовая + C20:2 + C20:3 + арахидоновая.</p>
+ <h2>Источники данных</h2>
+ <ul><li><b>Состав продуктов:</b> USDA National Nutrient Database for Standard Reference, выпуск 26 (общественное достояние). ${DB.foods.length} видов сырья переведены на русский язык, ещё 8 058 доступны в расширенной базе на английском.</li>
+ <li><b>Потери белков, жиров, углеводов:</b> обобщённые величины по Скурихину (МУ 4237-86): в среднем 6, 12 и 9%; животное сырьё 8 и 25%; растительное 5, 6 и 9%.</li>
+ <li><b>Обобщённая сохранность минеральных веществ и витаминов по Скурихину:</b> потери Ca 12 (10 растительное, 15 животное), Mg и P 13 (10 и 20), витамин C 60%. Для Fe 13, A 40, β-каротина 20, B1 28, B2 20, PP 20% использованы обобщённые величины, которые обычно приводят со ссылкой на справочник: сверьте их с печатным изданием.</li>
+ <li><b>Сохранность по способам обработки:</b> USDA Table of Nutrient Retention Factors, выпуск 6 (2007).</li>
+ <li><b>Нормы:</b> ТР ТС 022/2011 (приложения 2–5), МР 2.3.1.0253-21. Эталоны белка: ФАО/ВОЗ 1973, ФАО/ВОЗ/УООН 2007, ФАО 2013.</li></ul>
+ <h2>Ограничения</h2>
+ <ul><li>Таблицы Скурихина и Тутельяна (2002) в машиночитаемом виде не публикуются, поэтому числовая основа базы – USDA. Состав российского сырья может отличаться: породы, корма, сорта, разделка. Для точной работы добавляйте свои продукты по Скурихину или по протоколам испытаний во вкладке «Справочник».</li>
+ <li>Значок ◐ означает, что для части ингредиентов в справочнике нет данных по этому веществу; итог занижен.</li>
+ <li>Ориентировочные выходы взяты из практики общественного питания и служат подсказкой. Фактический выход задаёт ваша технология.</li>
+ <li>Коэффициенты сохранности применяются ко всей рецептуре сразу. Жир, впитанный при жарке, учитывайте как ингредиент.</li>
+ <li>Расчёт не заменяет лабораторные испытания при подтверждении показателей для маркировки.</li></ul></section>`; }
+
+/* ---------- экспорт ---------- */
+function sheets(C){
+  const er=energy(C.raw100), ef=energy(C.fin100), por=ST.portion/100;
+  const A=[['Рецептура',ST.name],['Ингредиент','Масса, г','Доля, %']].concat(C.items.map(x=>[x.f.name,x.m,+(x.m/C.M*100).toFixed(2)]),[['Итого',C.M,100],[],['Выход, %',+ST.yield],['Масса готового продукта, г',+C.Mout.toFixed(1)],['Способ обработки',(MICRO.find(m=>m.id===ST.micro)||{}).n],['Потери БЖУ',MACRO[ST.macro].n],[],['Коэффициент сохранности, %']],RP.map(r=>[r[1],C.R[r[0]]]));
+  const H=['Показатель','Ед.','Сырьё, на 100 г','Готовый продукт, на 100 г','Порция '+ST.portion+' г','Охват данными, % массы'];
+  const rw=k=>[META[k].n,META[k].u,+C.raw100[k].toFixed(4),+C.fin100[k].toFixed(4),+(C.fin100[k]*por).toFixed(4),+(C.cov[k]*100).toFixed(0)];
+  const B=[H,['Энергетическая ценность','ккал',+er.kcal.toFixed(1),+ef.kcal.toFixed(1),+(ef.kcal*por).toFixed(1),''],['Энергетическая ценность','кДж',+er.kj.toFixed(1),+ef.kj.toFixed(1),+(ef.kj*por).toFixed(1),'']].concat(ORDER.main.map(rw),[['Углеводы']],ORDER.carb.map(rw),[['Минеральные вещества']],ORDER.min.map(rw),[['Витамины']],ORDER.vit.map(rw));
+  const q=proteinQuality(C.fin100,ST.aaref);
+  const P=[H].concat(ORDER.aa.concat(ORDER.naa).map(rw));
+  if(q){ P.push([],['Эталон',AAREF[ST.aaref].n],['Аминокислота','мг/г белка','Эталон, мг/г','Скор, %']); q.rows.forEach(r=>P.push([r.n,+r.a.toFixed(2),r.e,+(r.c*100).toFixed(1)]));
+    P.push([],['Лимитирующая аминокислота',q.lim.n],['Минимальный скор, %',+(q.cmin*100).toFixed(1)],['КРАС, %',+q.kras.toFixed(2)],['Биологическая ценность, %',+q.bv.toFixed(2)],['Коэффициент утилитарности',+q.util.toFixed(3)],['Сопоставимая избыточность, г/100 г белка',+q.sigma.toFixed(2)],['EAAI',+q.eaai.toFixed(1)]); }
+  const L=lipidIndices(C.fin100,ef.kcal), n=v=>v==null?'':+v.toFixed(3);
+  const F=[H].concat(ORDER.lip.map(rw),ORDER.fa.filter(k=>C.raw100[k]>0).map(rw),[[],['Показатели (готовый продукт)'],['НЖК : МНЖК : ПНЖК',L.ratio?L.ratio.map(x=>x.toFixed(2)).join(' : '):''],['ω-6 : ω-3',n(L.n6n3)],['ПНЖК / НЖК',n(L.ps)],['Индекс атерогенности',n(L.ai)],['Индекс тромбогенности',n(L.ti)],['h/H',n(L.hH)]]);
+  return [['Рецептура',A],['Состав',B],['Аминокислоты',P],['Жирные кислоты',F]];
+}
+async function saveFile(filename,data,mime){
+  try{ if(window.claude&&window.claude.use){ const d=await window.claude.use('downloads'); if(d){ await d.save({filename,data}); return true; } } }catch(e){ if(e&&e.code==='declined') return false; }
+  try{ const b=data instanceof Blob?data:new Blob([data],{type:mime||'application/octet-stream'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); return true; }catch(e){ return false; }
+}
+async function exportXlsx(){ if(typeof XLSX==='undefined'){ toast('Библиотека Excel не загрузилась. Используйте «Скопировать таблицу состава».'); return; }
+  const wb=XLSX.utils.book_new(); sheets(compute(ST,lookup)).forEach(s=>{ const ws=XLSX.utils.aoa_to_sheet(s[1]); ws['!cols']=[{wch:42},{wch:14},{wch:18},{wch:24},{wch:16},{wch:22}]; XLSX.utils.book_append_sheet(wb,ws,s[0]); });
+  const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const ok=await saveFile((ST.name||'recipe').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60)+'.xlsx',new Blob([buf]),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  toast(ok?'Файл Excel подготовлен.':'Сохранение отменено или недоступно здесь.'); }
+function copyTable(){ const t=sheets(compute(ST,lookup)).map(s=>s[0]+'\n'+s[1].map(r=>r.join('\t')).join('\n')).join('\n\n');
+  navigator.clipboard.writeText(t).then(()=>toast('Таблицы скопированы: вставьте в Excel.'),()=>toast('Браузер не разрешил копирование.')); }
+
+/* ---------- события ---------- */
+function addItem(id){ const it=ST.items.find(x=>x.fid===id); if(it) it.m=(+it.m||0)+100; else ST.items.push({fid:id,m:100}); save(); toast('Добавлено в рецептуру: '+FOODS.get(id).name); }
+document.addEventListener('input',e=>{ const t=e.target;
+  if(t.id==='q'){ const r=t.value.trim().length<2?[]:findFoods(t.value,'',15);
+    $('#found').innerHTML=r.map(f=>`<button data-add="${f.id}" data-rerender="1"><span>${esc(f.name)}</span><small>${fmt(fv(f,'prot'),1)} / ${fmt(fv(f,'fat'),1)} / ${fmt(fv(f,'carb')||0,1)}</small></button>`).join('')||(t.value.trim().length<2?'':'<button disabled>Не найдено. Добавьте свой продукт во вкладке «Справочник».</button>'); }
+  if(t.id==='bq'){ BASEQ=t.value; baseList(); }
+});
+document.addEventListener('change',e=>{ const t=e.target, v=parseFloat(t.value);
+  if(t.dataset.mass!=null){ ST.items[+t.dataset.mass].m=v>0?v:0; }
+  else if(t.id==='rname'){ ST.name=t.value; save(); return; }
+  else if(t.id==='micro'){ ST.micro=t.value; const m=MICRO.find(x=>x.id===t.value); ST.macro=m.m; if(m.y) ST.yield=m.y; ST.ret={}; }
+  else if(t.id==='macro'){ ST.macro=t.value; if(ST.ret){ delete ST.ret.prot; delete ST.ret.fat; delete ST.ret.carb; } }
+  else if(t.id==='yield'){ if(v>0) ST.yield=v; }
+  else if(t.id==='mout'){ const C=compute(ST,lookup); if(v>0&&C.M>0) ST.yield=+(v/C.M*100).toFixed(2); }
+  else if(t.id==='portion'){ if(v>0) ST.portion=v; }
+  else if(t.dataset.ret){ if(v>=0){ ST.ret=ST.ret||{}; ST.ret[t.dataset.ret]=v; } }
+  else if(t.id==='norm'){ ST.norm=t.value; }
+  else if(t.id==='aaref'){ ST.aaref=t.value; }
+  else if(t.id==='bcat'){ BASECAT=t.value; baseList(); return; }
+  else if(t.id==='impUser'){ const f=t.files[0]; if(!f) return; f.text().then(s=>{ try{ const arr=JSON.parse(s); let n=0; arr.forEach(u=>{ if(u&&u.name&&u.v){ u.id='u'+Date.now()+(n++); USER.push(u); FOODS.set(u.id,userToFood(u)); } }); LS.set('user',USER); toast('Загружено продуктов: '+n); render(); }catch(err){ toast('Файл не прочитан: нужен JSON, выгруженный из этого калькулятора.'); } }); return; }
+  else return;
+  save(); render();
+});
+document.addEventListener('click',e=>{ const t=e.target.closest('[data-add],[data-del],[data-act],[data-show],[data-deluser]'); if(!t) return;
+  if(t.dataset.add){ addItem(t.dataset.add); if(t.dataset.rerender) render(); return; }
+  if(t.dataset.del!=null){ ST.items.splice(+t.dataset.del,1); save(); render(); return; }
+  if(t.dataset.show){ e.preventDefault(); baseDetail(t.dataset.show); return; }
+  if(t.dataset.deluser){ const id=t.dataset.deluser; USER=USER.filter(u=>u.id!==id); LS.set('user',USER); FOODS.delete(id); ST.items=ST.items.filter(i=>i.fid!==id); save(); render(); return; }
+  const a=t.dataset.act, rec=LS.get('recipes',[]);
+  if(a==='saveRecipe'){ save(); const i=rec.findIndex(r=>r.name===ST.name); const c=JSON.parse(JSON.stringify(ST)); if(i>=0) rec[i]=c; else rec.push(c); LS.set('recipes',rec); toast('Рецептура сохранена в этом браузере.'); render(); }
+  else if(a==='loadRecipe'||a==='delRecipe'){ const i=$('#savedSel').value; if(i==='') return; if(a==='delRecipe'){ rec.splice(+i,1); LS.set('recipes',rec); } else { ST=JSON.parse(JSON.stringify(rec[+i])); ST.items.forEach(it=>{ if(!FOODS.has(it.fid)&&it.snap) FOODS.set(it.fid,it.snap); }); ST.items=ST.items.filter(it=>FOODS.has(it.fid)); save(); } render(); }
+  else if(a==='newRecipe'){ ST=Object.assign(JSON.parse(JSON.stringify(EXAMPLE)),{name:'Новая рецептура',items:[],micro:'none',macro:'none',yield:100}); save(); render(); }
+  else if(a==='example'){ ST=JSON.parse(JSON.stringify(EXAMPLE)); save(); render(); }
+  else if(a==='scale'){ const v=parseFloat($('#scaleTo').value), C=compute(ST,lookup); if(v>0&&C.M>0){ const k=v/C.M; ST.items.forEach(i=>i.m=+(i.m*k).toFixed(3)); save(); render(); } }
+  else if(a==='resetRet'){ ST.ret={}; save(); render(); }
+  else if(a==='xlsx') exportXlsx();
+  else if(a==='copy') copyTable();
+  else if(a==='loadFull'){ t.disabled=true; t.textContent='Загрузка...'; const s=document.createElement('script'); s.src='usda_full.js';
+    s.onload=()=>{ const U=window.USDA_FULL; U.foods.forEach(x=>FOODS.set('r'+x[0],{id:'r'+x[0],name:x[1],cat:'USDA: '+U.groups[x[2]],en:'',v:x[3],src:'en'})); fullLoaded=true; toast('Расширенная база подключена.'); render(); };
+    s.onerror=()=>{ t.disabled=false; t.textContent='Не удалось загрузить. Повторить'; }; document.head.appendChild(s); }
+  else if(a==='addUser'){ const name=$('#u_name').value.trim(); if(!name){ toast('Укажите название продукта.'); return; } const v={};
+    ALLK.forEach(k=>{ const el=$('#u_'+k); if(el&&el.value!==''){ const x=parseFloat(el.value); if(x>=0) v[k]=x; } });
+    if(v.prot==null||v.fat==null||v.water==null){ toast('Заполните хотя бы воду, белки и жиры.'); return; }
+    if(v.carb==null) v.carb=0; const u={id:'u'+Date.now(),name,v}; USER.push(u); LS.set('user',USER); FOODS.set(u.id,userToFood(u)); toast('Продукт сохранён в этом браузере.'); render(); }
+  else if(a==='expUser'){ if(!USER.length){ toast('Своих продуктов пока нет.'); return; } saveFile('svoi-produkty.json',JSON.stringify(USER.map(u=>({name:u.name,v:u.v})),null,1),'application/json').then(ok=>toast(ok?'Файл подготовлен.':'Сохранение отменено или недоступно здесь.')); }
+});
+render();
+</script>
+</body>
+</html>
